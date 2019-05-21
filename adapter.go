@@ -22,10 +22,7 @@ type CasbinRule struct {
 
 // Adapter represents the sqlx adapter for policy storage.
 type Adapter struct {
-	driverName     string
-	dataSourceName string
-	dbSpecified    bool
-	db             *sqlx.DB
+	db *sqlx.DB
 }
 
 func finalizer(a *Adapter) {
@@ -119,18 +116,20 @@ func NewAdapter(driverName string, dataSourceName string) *Adapter {
 		panic(err)
 	}
 	a := &Adapter{
-		driverName:     driverName,
-		dataSourceName: dataSourceName,
-		db:             db,
+		db: db,
 	}
-	a.driverName = driverName
-	a.dataSourceName = dataSourceName
-
 	a.ensureTable()
-
 	// Call the destructor when the object is released.
 	runtime.SetFinalizer(a, finalizer)
+	return a
+}
 
+// NewAdapterByDB is the constructor for Adapter with existed connection
+func NewAdapterByDB(db *sqlx.DB) *Adapter {
+	a := &Adapter{
+		db: db,
+	}
+	a.ensureTable()
 	return a
 }
 
@@ -215,7 +214,6 @@ func (a *Adapter) RemoveFilteredPolicy(sec string, ptype string, fieldIndex int,
 	if fieldIndex <= 5 && 5 < fieldIndex+len(fieldValues) {
 		line.V5 = fieldValues[5-fieldIndex]
 	}
-
 	err = a.rawDelete(&line)
 	if err != nil {
 		return
