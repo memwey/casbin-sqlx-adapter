@@ -1,6 +1,7 @@
 package sqlxadapter
 
 import (
+	"fmt"
 	"runtime"
 
 	"github.com/casbin/casbin/model"
@@ -23,6 +24,15 @@ type CasbinRule struct {
 // Adapter represents the sqlx adapter for policy storage.
 type Adapter struct {
 	db *sqlx.DB
+	tableName string
+}
+
+// AdapterOptions contains all possible configuration options.
+type AdapterOptions struct {
+	DriverName string
+	DataSourceName string
+	TableName string
+	Db *sqlx.DB
 }
 
 func finalizer(a *Adapter) {
@@ -77,21 +87,22 @@ func savePolicyLine(ptype string, rule []string) CasbinRule {
 }
 
 func (a *Adapter) dropTable() {
-	_, err := a.db.Exec(`DELETE FROM casbin_rule`)
+	_, err := a.db.Exec(fmt.Sprintf("DELETE FROM `%s`", a.tableName))
 	if err != nil {
 		panic(err)
 	}
 }
 
 func (a *Adapter) ensureTable() {
-	_, err := a.db.Exec(`SELECT 1 FROM casbin_rule LIMIT 1`)
+	_, err := a.db.Exec(fmt.Sprintf("SELECT 1 FROM `%s` LIMIT 1", a.tableName))
 	if err != nil {
 		panic(err)
 	}
 }
 
 func (a *Adapter) insertPolicyLine(line *CasbinRule) (err error) {
-	_, err = a.db.NamedExec("INSERT INTO casbin_rule (p_type, v0, v1, v2, v3, v4, v5) VALUES (:p_type, :v0, :v1, :v2, :v3, :v4, :v5)", line)
+	query := fmt.Sprintf("INSERT INTO %s (p_type, v0, v1, v2, v3, v4, v5) VALUES (:p_type, :v0, :v1, :v2, :v3, :v4, :v5)", a.tableName)
+	_, err = a.db.NamedExec(query, line)
 	if err != nil {
 		return
 	}
@@ -99,10 +110,11 @@ func (a *Adapter) insertPolicyLine(line *CasbinRule) (err error) {
 }
 
 func (a *Adapter) deletePolicyLine(line *CasbinRule) (err error) {
-	_, err = a.db.NamedExec(`
-		DELETE FROM casbin_rule WHERE p_type = :p_type AND v0 = :v0 AND v1 = :v1 AND
-			v2 = :v2 AND v3 = :v3 AND v4 = :v4 AND v5 = :v5
-	`, line)
+	query := fmt.Sprintf(
+		"DELETE FROM %s WHERE p_type = :p_type AND v0 = :v0 AND v1 = :v1 AND v2 = :v2 AND v3 = :v3 AND v4 = :v4 AND v5 = :v5",
+		a.tableName,
+	)
+	_, err = a.db.NamedExec(query, line)
 	if err != nil {
 		return
 	}
@@ -117,6 +129,7 @@ func NewAdapter(driverName string, dataSourceName string) *Adapter {
 	}
 	a := &Adapter{
 		db: db,
+		tableName: "casbin_rule",
 	}
 	a.ensureTable()
 	// Call the destructor when the object is released.
@@ -128,7 +141,32 @@ func NewAdapter(driverName string, dataSourceName string) *Adapter {
 func NewAdapterByDB(db *sqlx.DB) *Adapter {
 	a := &Adapter{
 		db: db,
+		tableName: "casbin_rule",
 	}
+	a.ensureTable()
+	return a
+}
+
+// NewAdapterFromOptions is the constructor for Adapter with existed connection
+func NewAdapterFromOptions(opts *AdapterOptions) *Adapter {
+	a := &Adapter{tableName: "casbin_rule"}
+
+	if opts.TableName != "" {
+		a.tableName = opts.TableName
+	}
+
+	if opts.Db != nil {
+		a.db = opts.Db
+	} else {
+		db, err := sqlx.Connect(opts.DriverName, opts.DataSourceName)
+		if err != nil {
+			panic(err)
+		}
+		a.db = db
+
+		runtime.SetFinalizer(a, finalizer)
+	}
+
 	a.ensureTable()
 	return a
 }
@@ -136,9 +174,7 @@ func NewAdapterByDB(db *sqlx.DB) *Adapter {
 // LoadPolicy loads policy from database.
 func (a *Adapter) LoadPolicy(model model.Model) error {
 	var lines []CasbinRule
-	err := a.db.Select(&lines,
-		`SELECT * FROM casbin_rule`,
-	)
+	err := a.db.Select(&lines, fmt.Sprintf("SELECT * FROM `%s`", a.tableName))
 	if err != nil {
 		return err
 	}
@@ -223,7 +259,7 @@ func (a *Adapter) RemoveFilteredPolicy(sec string, ptype string, fieldIndex int,
 
 func (a *Adapter) rawDelete(line *CasbinRule) (err error) {
 	queryArgs := []interface{}{line.PType}
-	query := "DELETE FROM casbin_rule WHERE p_type = ?"
+	query := fmt.Sprintf("DELETE FROM `%s` WHERE p_type = ?", a.tableName)
 	if line.V0 != "" {
 		query += " AND v0 = ?"
 		queryArgs = append(queryArgs, line.V0)

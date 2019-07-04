@@ -7,6 +7,21 @@ Based on [sqlx](https://github.com/jmoiron/sqlx), and tested in [MySQL](https://
 
     go get github.com/memwey/casbin-sqlx-adapter
 
+## Usage example
+
+```go
+opts := &AdapterOptions{
+    DriverName: "mysql",
+    DataSourceName: "root:1234@tcp(127.0.0.1:3306)/yourdb",
+    TableName: "casbin_rule",
+    // or reuse an existing connection:
+    // Db: myDBConn,
+}
+
+a := NewAdapterFromOptions(opts)
+e := casbin.NewEnforcer("examples/rbac_model.conf", a)
+```
+
 ## Notice
 
 The implement is kind of different from the [official one](https://casbin.org/docs/en/adapters). In this implement you should create the database and table on your own.
