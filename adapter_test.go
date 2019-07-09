@@ -1,13 +1,20 @@
 package sqlxadapter
 
 import (
+	"io/ioutil"
 	"log"
 	"testing"
 
 	"github.com/casbin/casbin"
 	"github.com/casbin/casbin/util"
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
+)
+
+var (
+	driverName     = "mysql"
+	dataSourceName = "root:mariadb@tcp(127.0.0.1:3306)/abc"
 )
 
 func testGetPolicy(t *testing.T, e *casbin.Enforcer, res [][]string) {
@@ -20,7 +27,7 @@ func testGetPolicy(t *testing.T, e *casbin.Enforcer, res [][]string) {
 	}
 }
 
-func initPolicy(t *testing.T, driverName string, dataSourceName string, dbSpecified ...bool) {
+func initPolicy(t *testing.T) {
 	// Because the DB is empty at first,
 	// so we need to load the policy from the file adapter (.CSV) first.
 	e := casbin.NewEnforcer("examples/rbac_model.conf", "examples/rbac_policy.csv")
@@ -46,9 +53,9 @@ func initPolicy(t *testing.T, driverName string, dataSourceName string, dbSpecif
 	testGetPolicy(t, e, [][]string{{"alice", "data1", "read"}, {"bob", "data2", "write"}, {"data2_admin", "data2", "read"}, {"data2_admin", "data2", "write"}})
 }
 
-func testSaveLoad(t *testing.T, driverName string, dataSourceName string, dbSpecified ...bool) {
+func testSaveLoad(t *testing.T) {
 	// Initialize some policy in DB.
-	initPolicy(t, driverName, dataSourceName, dbSpecified...)
+	initPolicy(t)
 	// Note: you don't need to look at the above code
 	// if you already have a working DB with policy inside.
 
@@ -60,9 +67,9 @@ func testSaveLoad(t *testing.T, driverName string, dataSourceName string, dbSpec
 	testGetPolicy(t, e, [][]string{{"alice", "data1", "read"}, {"bob", "data2", "write"}, {"data2_admin", "data2", "read"}, {"data2_admin", "data2", "write"}})
 }
 
-func testAutoSave(t *testing.T, driverName string, dataSourceName string, dbSpecified ...bool) {
+func testAutoSave(t *testing.T) {
 	// Initialize some policy in DB.
-	initPolicy(t, driverName, dataSourceName, dbSpecified...)
+	initPolicy(t)
 	// Note: you don't need to look at the above code
 	// if you already have a working DB with policy inside.
 
@@ -109,6 +116,26 @@ func testAutoSave(t *testing.T, driverName string, dataSourceName string, dbSpec
 }
 
 func TestAdapters(t *testing.T) {
-	testSaveLoad(t, "mysql", "root:mariadb@tcp(127.0.0.1:3306)/abc")
-	testAutoSave(t, "mysql", "root:mariadb@tcp(127.0.0.1:3306)/abc")
+	setupDatabase(t)
+	testSaveLoad(t)
+	testAutoSave(t)
+}
+
+// Make sure the initial casbin_rule table exists
+func setupDatabase(t *testing.T) {
+	migration, err := ioutil.ReadFile("examples/casbin_rule.sql")
+	if err != nil {
+		t.Fatalf("failed to load casbin_rule sql migration: %s", err)
+	}
+
+	db, err := sqlx.Connect(driverName, dataSourceName)
+	if err != nil {
+		t.Fatalf("failed to connect to database: %s", err)
+	}
+	defer db.Close()
+
+	_, err = db.Exec(string(migration))
+	if err != nil {
+		t.Fatalf("failed to run casbin_rule sql migration: %s", err)
+	}
 }
