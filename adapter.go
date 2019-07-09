@@ -23,16 +23,16 @@ type CasbinRule struct {
 
 // Adapter represents the sqlx adapter for policy storage.
 type Adapter struct {
-	db *sqlx.DB
+	db        *sqlx.DB
 	tableName string
 }
 
 // AdapterOptions contains all possible configuration options.
 type AdapterOptions struct {
-	DriverName string
+	DriverName     string
 	DataSourceName string
-	TableName string
-	Db *sqlx.DB
+	TableName      string
+	DB             *sqlx.DB
 }
 
 func finalizer(a *Adapter) {
@@ -128,7 +128,7 @@ func NewAdapter(driverName string, dataSourceName string) *Adapter {
 		panic(err)
 	}
 	a := &Adapter{
-		db: db,
+		db:        db,
 		tableName: "casbin_rule",
 	}
 	a.ensureTable()
@@ -140,7 +140,7 @@ func NewAdapter(driverName string, dataSourceName string) *Adapter {
 // NewAdapterByDB is the constructor for Adapter with existed connection
 func NewAdapterByDB(db *sqlx.DB) *Adapter {
 	a := &Adapter{
-		db: db,
+		db:        db,
 		tableName: "casbin_rule",
 	}
 	a.ensureTable()
@@ -155,8 +155,8 @@ func NewAdapterFromOptions(opts *AdapterOptions) *Adapter {
 		a.tableName = opts.TableName
 	}
 
-	if opts.Db != nil {
-		a.db = opts.Db
+	if opts.DB != nil {
+		a.db = opts.DB
 	} else {
 		db, err := sqlx.Connect(opts.DriverName, opts.DataSourceName)
 		if err != nil {

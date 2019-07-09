@@ -15,7 +15,7 @@ opts := &AdapterOptions{
     DataSourceName: "root:1234@tcp(127.0.0.1:3306)/yourdb",
     TableName: "casbin_rule",
     // or reuse an existing connection:
-    // Db: myDBConn,
+    // DB: myDBConn,
 }
 
 a := NewAdapterFromOptions(opts)
