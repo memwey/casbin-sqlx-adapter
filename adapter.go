@@ -121,7 +121,8 @@ func (a *Adapter) deletePolicyLine(line *CasbinRule) (err error) {
 	return
 }
 
-// NewAdapter is the constructor for Adapter.
+// NewAdapter is the constructor for Adapter
+// Deprecated: Use NewAdapterFromOptions instead
 func NewAdapter(driverName string, dataSourceName string) *Adapter {
 	db, err := sqlx.Connect(driverName, dataSourceName)
 	if err != nil {
@@ -138,6 +139,7 @@ func NewAdapter(driverName string, dataSourceName string) *Adapter {
 }
 
 // NewAdapterByDB is the constructor for Adapter with existed connection
+// Deprecated: Use NewAdapterFromOptions instead
 func NewAdapterByDB(db *sqlx.DB) *Adapter {
 	a := &Adapter{
 		db:        db,
@@ -150,11 +152,9 @@ func NewAdapterByDB(db *sqlx.DB) *Adapter {
 // NewAdapterFromOptions is the constructor for Adapter with existed connection
 func NewAdapterFromOptions(opts *AdapterOptions) *Adapter {
 	a := &Adapter{tableName: "casbin_rule"}
-
 	if opts.TableName != "" {
 		a.tableName = opts.TableName
 	}
-
 	if opts.DB != nil {
 		a.db = opts.DB
 	} else {
@@ -163,10 +163,8 @@ func NewAdapterFromOptions(opts *AdapterOptions) *Adapter {
 			panic(err)
 		}
 		a.db = db
-
 		runtime.SetFinalizer(a, finalizer)
 	}
-
 	a.ensureTable()
 	return a
 }
