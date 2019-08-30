@@ -3,7 +3,7 @@ module github.com/memwey/casbin-sqlx-adapter
 go 1.12
 
 require (
-	github.com/casbin/casbin v1.8.2
+	github.com/casbin/casbin/v2 v2.0.1
 	github.com/go-sql-driver/mysql v1.4.1
 	github.com/jmoiron/sqlx v1.2.0
 	github.com/lib/pq v1.1.1
