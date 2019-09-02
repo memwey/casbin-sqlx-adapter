@@ -19,10 +19,16 @@ opts := &AdapterOptions{
 }
 
 a := NewAdapterFromOptions(opts)
-e := casbin.NewEnforcer("examples/rbac_model.conf", a)
+// Casbin v2 may return an error
+e, err := casbin.NewEnforcer("examples/rbac_model.conf", a)
+if err != nil {
+    panic(err)
+}
 ```
 
 ## Notice
+
+The v2 version of Casbin has some break change, check for the [detail](https://github.com/casbin/casbin/releases/tag/v2.0.0). If you are still using v1 version, use `0.1.x` of this project.
 
 The implement is kind of different from the [official one](https://casbin.org/docs/en/adapters). In this implement you should create the database and table on your own.
 
@@ -30,7 +36,7 @@ In my opinion, in a general PRODUCTION environment, the business code can rarely
 
 ## Thank
 
-Special thanks to [casin](https://github.com/casbin). They provide a superb authorization library.
+Special thanks to [Casbin](https://github.com/casbin). They provide a superb authorization library.
 
 Special thanks to [sqlx](https://github.com/jmoiron/sqlx). It provides a brilliant set of extensions on go's standard `database/sql` library.
 
