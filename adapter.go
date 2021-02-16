@@ -94,9 +94,70 @@ func (a *Adapter) dropTable() {
 }
 
 func (a *Adapter) ensureTable() {
+	driverName := a.db.DriverName()
 	_, err := a.db.Exec(fmt.Sprintf("SELECT 1 FROM `%s` LIMIT 1", a.tableName))
 	if err != nil {
-		panic(err)
+		switch driverName {
+		case "postgres":
+			fallthrough
+		case "pgx":
+			idName := fmt.Sprintf("id_%s", a.tableName)
+
+			a.db.MustExec(fmt.Sprintf(`
+			CREATE SEQUENCE IF NOT EXISTS %s;
+
+			CREATE TABLE IF NOT EXISTS %s(
+				id INTEGER NOT NULL DEFAULT nextval('%s') ,
+				p_type VARCHAR(32) NOT NULL DEFAULT '',
+				v0 VARCHAR(255) NOT NULL DEFAULT '',
+				v1 VARCHAR(255) NOT NULL DEFAULT '',
+				v2 VARCHAR(255) NOT NULL DEFAULT '',
+				v3 VARCHAR(255) NOT NULL DEFAULT '',
+				v4 VARCHAR(255) NOT NULL DEFAULT '',
+				v5 VARCHAR(255) NOT NULL DEFAULT '',
+				PRIMARY KEY (id)
+				);
+			ALTER SEQUENCE %s OWNED BY %s.id
+				 `, idName, a.tableName, idName, idName, a.tableName))
+		case "mysql":
+			a.db.MustExec(
+				fmt.Sprintf(
+					`CREATE TABLE IF NOT EXISTS %s(
+				id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+				p_type VARCHAR(32) NOT NULL DEFAULT '',
+				v0 VARCHAR(255) NOT NULL DEFAULT '',
+				v1 VARCHAR(255) NOT NULL DEFAULT '',
+				v2 VARCHAR(255) NOT NULL DEFAULT '',
+				v3 VARCHAR(255) NOT NULL DEFAULT '',
+				v4 VARCHAR(255) NOT NULL DEFAULT '',
+				v5 VARCHAR(255) NOT NULL DEFAULT '',
+				PRIMARY KEY (id)
+				)`, a.tableName),
+			)
+		case "sqlite":
+			fallthrough
+		case "sqlite3":
+			a.db.MustExec(
+				fmt.Sprintf(
+					`CREATE TABLE IF NOT EXISTS %s(
+					id INTEGER,
+					p_type VARCHAR(32) NOT NULL DEFAULT '',
+					v0 VARCHAR(255) NOT NULL DEFAULT '',
+					v1 VARCHAR(255) NOT NULL DEFAULT '',
+					v2 VARCHAR(255) NOT NULL DEFAULT '',
+					v3 VARCHAR(255) NOT NULL DEFAULT '',
+					v4 VARCHAR(255) NOT NULL DEFAULT '',
+					v5 VARCHAR(255) NOT NULL DEFAULT '',
+					PRIMARY KEY (id)
+					)`, a.tableName),
+			)
+
+			if err != nil {
+				panic(err)
+			}
+		default:
+			panic(err)
+		}
 	}
 }
 
@@ -172,7 +233,7 @@ func NewAdapterFromOptions(opts *AdapterOptions) *Adapter {
 // LoadPolicy loads policy from database.
 func (a *Adapter) LoadPolicy(model model.Model) error {
 	var lines []CasbinRule
-	err := a.db.Select(&lines, fmt.Sprintf("SELECT * FROM `%s`", a.tableName))
+	err := a.db.Select(&lines, fmt.Sprintf("SELECT * FROM %s", a.tableName))
 	if err != nil {
 		return err
 	}
