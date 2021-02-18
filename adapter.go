@@ -11,7 +11,7 @@ import (
 
 // CasbinRule ...
 type CasbinRule struct {
-	ID    uint   `db:"id"`
+	ID    int64  `db:"id"`
 	PType string `db:"p_type"`
 	V0    string `db:"v0"`
 	V1    string `db:"v1"`
@@ -23,8 +23,20 @@ type CasbinRule struct {
 
 // Adapter represents the sqlx adapter for policy storage.
 type Adapter struct {
-	db        *sqlx.DB
-	tableName string
+	db         *sqlx.DB
+	tableName  string
+	isFiltered bool
+}
+
+// Filter ...
+type Filter struct {
+	PType []string
+	V0    []string
+	V1    []string
+	V2    []string
+	V3    []string
+	V4    []string
+	V5    []string
 }
 
 // AdapterOptions contains all possible configuration options.
@@ -87,14 +99,14 @@ func savePolicyLine(ptype string, rule []string) CasbinRule {
 }
 
 func (a *Adapter) dropTable() {
-	_, err := a.db.Exec(fmt.Sprintf("DELETE FROM `%s`", a.tableName))
+	_, err := a.db.Exec(fmt.Sprintf("DELETE FROM %s", a.tableName))
 	if err != nil {
 		panic(err)
 	}
 }
 
 func (a *Adapter) ensureTable() {
-	_, err := a.db.Exec(fmt.Sprintf("SELECT 1 FROM `%s` LIMIT 1", a.tableName))
+	_, err := a.db.Exec(fmt.Sprintf("SELECT 1 FROM %s LIMIT 1", a.tableName))
 	if err != nil {
 		panic(err)
 	}
@@ -172,7 +184,7 @@ func NewAdapterFromOptions(opts *AdapterOptions) *Adapter {
 // LoadPolicy loads policy from database.
 func (a *Adapter) LoadPolicy(model model.Model) error {
 	var lines []CasbinRule
-	err := a.db.Select(&lines, fmt.Sprintf("SELECT * FROM `%s`", a.tableName))
+	err := a.db.Select(&lines, fmt.Sprintf("SELECT * FROM %s", a.tableName))
 	if err != nil {
 		return err
 	}
@@ -256,35 +268,33 @@ func (a *Adapter) RemoveFilteredPolicy(sec string, ptype string, fieldIndex int,
 }
 
 func (a *Adapter) rawDelete(line *CasbinRule) (err error) {
-	queryArgs := []interface{}{line.PType}
-	query := fmt.Sprintf("DELETE FROM `%s` WHERE p_type = ?", a.tableName)
+	query := fmt.Sprintf("DELETE FROM %s WHERE p_type = :p_type", a.tableName)
 	if line.V0 != "" {
-		query += " AND v0 = ?"
-		queryArgs = append(queryArgs, line.V0)
+		query += " AND v0 = :v0"
 	}
 	if line.V1 != "" {
-		query += " AND v1 = ?"
-		queryArgs = append(queryArgs, line.V1)
+		query += " AND v1 = :v1"
 	}
 	if line.V2 != "" {
-		query += " AND v2 = ?"
-		queryArgs = append(queryArgs, line.V2)
+		query += " AND v2 = :v2"
 	}
 	if line.V3 != "" {
-		query += " AND v3 = ?"
-		queryArgs = append(queryArgs, line.V3)
+		query += " AND v3 = :v3"
 	}
 	if line.V4 != "" {
-		query += " AND v4 = ?"
-		queryArgs = append(queryArgs, line.V4)
+		query += " AND v4 = :v4"
 	}
 	if line.V5 != "" {
-		query += " AND v5 = ?"
-		queryArgs = append(queryArgs, line.V5)
+		query += " AND v5 = :v5"
 	}
-	_, err = a.db.Exec(query, queryArgs...)
+	_, err = a.db.NamedExec(query, line)
 	if err != nil {
 		return
 	}
 	return
+}
+
+// IsFiltered returns true if the loaded policy has been filtered.
+func (a *Adapter) IsFiltered() bool {
+	return a.isFiltered
 }

@@ -3,10 +3,10 @@ package sqlxadapter
 import (
 	"io/ioutil"
 	"log"
+	"strings"
 	"testing"
 
 	"github.com/casbin/casbin/v2"
-	"github.com/casbin/casbin/v2/util"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
@@ -22,8 +22,18 @@ func testGetPolicy(t *testing.T, e *casbin.Enforcer, res [][]string) {
 	myRes := e.GetPolicy()
 	log.Print("Policy: ", myRes)
 
-	if !util.Array2DEquals(res, myRes) {
-		t.Error("Policy: ", myRes, ", supposed to be ", res)
+	m := make(map[string]bool, len(res))
+	for _, value := range res {
+		key := strings.Join(value, ",")
+		m[key] = true
+	}
+
+	for _, value := range myRes {
+		key := strings.Join(value, ",")
+		if !m[key] {
+			t.Error("Policy: ", myRes, ", supposed to be ", res)
+			break
+		}
 	}
 }
 
@@ -81,7 +91,7 @@ func testAutoSave(t *testing.T) {
 	initPolicy(t)
 	// Note: you don't need to look at the above code
 	// if you already have a working DB with policy inside.
-
+	var err error
 	// Now the DB has policy, so we can provide a normal use case.
 	// Create an adapter and an enforcer.
 	// NewEnforcer() will load the policy automatically.
@@ -95,11 +105,19 @@ func testAutoSave(t *testing.T) {
 	// Now we disable it.
 	e.EnableAutoSave(false)
 
+	logErr := func(action string) {
+		if err != nil {
+			t.Fatalf("test action[%s] failed, err: %v", action, err)
+		}
+	}
+
 	// Because AutoSave is disabled, the policy change only affects the policy in Casbin enforcer,
 	// it doesn't affect the policy in the storage.
-	e.AddPolicy("alice", "data1", "write")
+	_, err = e.AddPolicy("alice", "data1", "write")
+	logErr("AddPolicy")
 	// Reload the policy from the storage to see the effect.
-	e.LoadPolicy()
+	err = e.LoadPolicy()
+	logErr("LoadPolicy")
 	// This is still the original policy.
 	testGetPolicy(t, e, [][]string{{"alice", "data1", "read"}, {"bob", "data2", "write"}, {"data2_admin", "data2", "read"}, {"data2_admin", "data2", "write"}})
 
@@ -108,21 +126,28 @@ func testAutoSave(t *testing.T) {
 
 	// Because AutoSave is enabled, the policy change not only affects the policy in Casbin enforcer,
 	// but also affects the policy in the storage.
-	e.AddPolicy("alice", "data1", "write")
+	_, err = e.AddPolicy("alice", "data1", "write")
+	logErr("AddPolicy2")
 	// Reload the policy from the storage to see the effect.
-	e.LoadPolicy()
+	err = e.LoadPolicy()
+	logErr("LoadPolicy2")
 	// The policy has a new rule: {"alice", "data1", "write"}.
 	testGetPolicy(t, e, [][]string{{"alice", "data1", "read"}, {"bob", "data2", "write"}, {"data2_admin", "data2", "read"}, {"data2_admin", "data2", "write"}, {"alice", "data1", "write"}})
 
 	// Remove the added rule.
-	e.RemovePolicy("alice", "data1", "write")
-	e.LoadPolicy()
+	_, err = e.RemovePolicy("alice", "data1", "write")
+	logErr("RemovePolicy")
+	err = e.LoadPolicy()
+	logErr("LoadPolicy3")
 	testGetPolicy(t, e, [][]string{{"alice", "data1", "read"}, {"bob", "data2", "write"}, {"data2_admin", "data2", "read"}, {"data2_admin", "data2", "write"}})
 
 	// Remove "data2_admin" related policy rules via a filter.
 	// Two rules: {"data2_admin", "data2", "read"}, {"data2_admin", "data2", "write"} are deleted.
-	e.RemoveFilteredPolicy(0, "data2_admin")
-	e.LoadPolicy()
+	_, err = e.RemoveFilteredPolicy(0, "data2_admin")
+	logErr("RemoveFilteredPolicy")
+	err = e.LoadPolicy()
+	logErr("LoadPolicy4")
+
 	testGetPolicy(t, e, [][]string{{"alice", "data1", "read"}, {"bob", "data2", "write"}})
 
 }

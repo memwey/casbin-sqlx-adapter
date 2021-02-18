@@ -34,6 +34,8 @@ The implement is kind of different from the [official one](https://casbin.org/do
 
 In my opinion, in a general PRODUCTION environment, the business code can rarely create a database, create a table or drop a table.
 
+The filtered adapter feature has been added in some adapter implements such as [Xorm Adapter](https://github.com/casbin/xorm-adapter). However, it's not yet documented in the [doc](https://casbin.org/docs/en/adapters). I will add it after it's documented. See this [issue](https://github.com/casbin/casbin/issues/707).
+
 ## Thank
 
 Special thanks to [Casbin](https://github.com/casbin). They provide a superb authorization library.
@@ -45,7 +47,7 @@ And this project is inspected by [Xorm Adapter](https://github.com/casbin/xorm-a
 
 ## Others
 
-This is a very first opensource of me and if this project violates any of the opensource guidelines, please contact me. The project is far from perfect, issues and pull requesets are very welcome. 
+This is a very first opensource of me and if this project violates any of the opensource guidelines, please contact me. The project is far from perfect, issues and pull requesets are very welcome.
 
 ## License
 
