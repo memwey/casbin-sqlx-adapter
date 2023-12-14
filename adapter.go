@@ -12,7 +12,7 @@ import (
 // CasbinRule ...
 type CasbinRule struct {
 	ID    int64  `db:"id"`
-	PType string `db:"p_type"`
+	PType string `db:"ptype"`
 	V0    string `db:"v0"`
 	V1    string `db:"v1"`
 	V2    string `db:"v2"`
@@ -113,7 +113,10 @@ func (a *Adapter) ensureTable() {
 }
 
 func (a *Adapter) insertPolicyLine(line *CasbinRule) (err error) {
-	query := fmt.Sprintf("INSERT INTO %s (p_type, v0, v1, v2, v3, v4, v5) VALUES (:p_type, :v0, :v1, :v2, :v3, :v4, :v5)", a.tableName)
+	query := fmt.Sprintf(
+		"INSERT INTO %s (ptype, v0, v1, v2, v3, v4, v5) VALUES (:ptype, :v0, :v1, :v2, :v3, :v4, :v5)",
+		a.tableName,
+	)
 	_, err = a.db.NamedExec(query, line)
 	if err != nil {
 		return
@@ -123,7 +126,7 @@ func (a *Adapter) insertPolicyLine(line *CasbinRule) (err error) {
 
 func (a *Adapter) deletePolicyLine(line *CasbinRule) (err error) {
 	query := fmt.Sprintf(
-		"DELETE FROM %s WHERE p_type = :p_type AND v0 = :v0 AND v1 = :v1 AND v2 = :v2 AND v3 = :v3 AND v4 = :v4 AND v5 = :v5",
+		"DELETE FROM %s WHERE ptype = :ptype AND v0 = :v0 AND v1 = :v1 AND v2 = :v2 AND v3 = :v3 AND v4 = :v4 AND v5 = :v5",
 		a.tableName,
 	)
 	_, err = a.db.NamedExec(query, line)
@@ -268,7 +271,7 @@ func (a *Adapter) RemoveFilteredPolicy(sec string, ptype string, fieldIndex int,
 }
 
 func (a *Adapter) rawDelete(line *CasbinRule) (err error) {
-	query := fmt.Sprintf("DELETE FROM %s WHERE p_type = :p_type", a.tableName)
+	query := fmt.Sprintf("DELETE FROM %s WHERE ptype = :ptype", a.tableName)
 	if line.V0 != "" {
 		query += " AND v0 = :v0"
 	}
