@@ -1,5 +1,6 @@
 # casbin-sqlx-adapter
-sqlx adapter for Casbin https://github.com/casbin/casbin
+Updated version of sqlx adapter for Casbin https://github.com/casbin/casbin, it is compatible with Casdoor v0.34.0 and higher.
+
 
 Based on [sqlx](https://github.com/jmoiron/sqlx), and tested in [MySQL](https://github.com/go-sql-driver/mysql).
 
