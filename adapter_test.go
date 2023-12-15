@@ -1,8 +1,8 @@
 package sqlxadapter
 
 import (
-	"io/ioutil"
 	"log"
+	"os"
 	"strings"
 	"testing"
 
@@ -160,7 +160,7 @@ func TestAdapters(t *testing.T) {
 
 // Make sure the initial casbin_rule table exists
 func setupDatabase(t *testing.T) {
-	migration, err := ioutil.ReadFile("examples/casbin_rule.sql")
+	migration, err := os.ReadFile("examples/casbin_rule.sql")
 	if err != nil {
 		t.Fatalf("failed to load casbin_rule sql migration: %s", err)
 	}

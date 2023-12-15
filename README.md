@@ -7,6 +7,18 @@ Based on [sqlx](https://github.com/jmoiron/sqlx), and tested in [MySQL](https://
 
     go get github.com/memwey/casbin-sqlx-adapter
 
+## NOTICE
+
+The v2 version of Casbin has some break change, check for the [detail](https://github.com/casbin/casbin/releases/tag/v2.0.0). If you are still using v1 version, use `0.1.x` of this project. And if you have been using the package before, and wanting to upgrade, check the following massage.
+
+The adapter maintained by Casbin team introduce a **BREAKING CHANGE** by changing the column name from **p_type** to **ptype**, see the issue in [gorm-adapter](https://github.com/casbin/gorm-adapter/issues/156) and [xorm-adapter](https://github.com/casbin/xorm-adapter/issues/53). Thought I think the adapter layer is able to imply its own storage detail, I follow this **BREAKING CHANGE** in version `0.3.0` in case of developers may port to different adapters.
+
+The implement is kind of different from the [official one](https://casbin.org/docs/adapters). In this implement you should create the database and table on your own.
+
+In my opinion, in a general PRODUCTION environment, the business code is only allow to do DML but not DDL.
+
+The filtered adapter feature has been added in some adapter implements such as [Xorm Adapter](https://github.com/casbin/xorm-adapter). However, it's not yet documented in the [doc](https://casbin.org/docs/en/adapters). I will add it after it's documented. See this [issue](https://github.com/casbin/casbin/issues/707).
+
 ## Usage example
 
 ```go
@@ -25,16 +37,6 @@ if err != nil {
     panic(err)
 }
 ```
-
-## Notice
-
-The v2 version of Casbin has some break change, check for the [detail](https://github.com/casbin/casbin/releases/tag/v2.0.0). If you are still using v1 version, use `0.1.x` of this project.
-
-The implement is kind of different from the [official one](https://casbin.org/docs/en/adapters). In this implement you should create the database and table on your own.
-
-In my opinion, in a general PRODUCTION environment, the business code can rarely create a database, create a table or drop a table.
-
-The filtered adapter feature has been added in some adapter implements such as [Xorm Adapter](https://github.com/casbin/xorm-adapter). However, it's not yet documented in the [doc](https://casbin.org/docs/en/adapters). I will add it after it's documented. See this [issue](https://github.com/casbin/casbin/issues/707).
 
 ## Thank
 
